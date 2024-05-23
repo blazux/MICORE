@@ -109,7 +109,7 @@ func listTasks() {
 }
 
 func sendMessageToService(msg *Message) {
-	conn, err := net.Dial("tcp", "localhost:12345")
+	conn, err := net.Dial("tcp", "localhost:54030")
 	if err != nil {
 		fmt.Println("Failed to connect to service:", err)
 		return
