@@ -15,12 +15,14 @@ type Task struct {
 	Interval time.Duration
 	Stop     chan bool
 	Repeat   int
+	Username string
 }
 
 type Message struct {
-	Type   string // "task", "stop", or "list"
-	Task   *Task
-	TaskID string
+	Type     string // "task", "stop", or "list"
+	Task     *Task
+	TaskID   string
+	Username string
 }
 
 func main() {
@@ -33,11 +35,11 @@ func main() {
 
 	switch command {
 	case "add":
-		if len(os.Args) != 5 {
-			fmt.Println("Usage: task_cli add <command> <interval> <repeat>")
+		if len(os.Args) != 6 {
+			fmt.Println("Usage: task_cli add <command> <interval> <repeat> <username>")
 			return
 		}
-		addTask(os.Args[2], os.Args[3], os.Args[4])
+		addTask(os.Args[2], os.Args[3], os.Args[4], os.Args[5])
 	case "stop":
 		if len(os.Args) != 3 {
 			fmt.Println("Usage: task_cli stop <task_id>")
@@ -45,13 +47,17 @@ func main() {
 		}
 		stopTask(os.Args[2])
 	case "list":
-		listTasks()
+		if len(os.Args) == 3 {
+			listTasksByUsername(os.Args[2])
+		} else {
+			listTasks()
+		}
 	default:
 		fmt.Println("Unknown command:", command)
 	}
 }
 
-func addTask(command, intervalStr, repeatStr string) {
+func addTask(command, intervalStr, repeatStr, username string) {
 	interval, err := time.ParseDuration(intervalStr)
 	if err != nil {
 		fmt.Println("Invalid interval:", err)
@@ -70,6 +76,7 @@ func addTask(command, intervalStr, repeatStr string) {
 		Interval: interval,
 		Stop:     make(chan bool),
 		Repeat:   repeat,
+		Username: username,
 	}
 
 	sendMessageToService(&Message{Type: "task", Task: task})
@@ -88,7 +95,7 @@ func listTasks() {
 	defer conn.Close()
 
 	encoder := gob.NewEncoder(conn)
-	err = encoder.Encode(&Message{Type: "list"})
+	err = encoder.Encode(&Message{Type: "list", Username: ""})
 	if err != nil {
 		fmt.Println("Failed to send list request:", err)
 		return
@@ -103,6 +110,35 @@ func listTasks() {
 	}
 
 	fmt.Println("Running tasks:")
+	for _, taskId := range taskList {
+		fmt.Println(taskId)
+	}
+}
+
+func listTasksByUsername(username string) {
+	conn, err := net.Dial("tcp", "localhost:54030")
+	if err != nil {
+		fmt.Println("Failed to connect to service:", err)
+		return
+	}
+	defer conn.Close()
+
+	encoder := gob.NewEncoder(conn)
+	err = encoder.Encode(&Message{Type: "list", Username: username})
+	if err != nil {
+		fmt.Println("Failed to send list request:", err)
+		return
+	}
+
+	decoder := gob.NewDecoder(conn)
+	var taskList []string
+	err = decoder.Decode(&taskList)
+	if err != nil {
+		fmt.Println("Failed to receive task list:", err)
+		return
+	}
+
+	fmt.Println("Running tasks for user", username, ":")
 	for _, taskId := range taskList {
 		fmt.Println(taskId)
 	}

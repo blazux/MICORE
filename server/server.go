@@ -15,12 +15,14 @@ type Task struct {
 	Interval time.Duration
 	Stop     chan bool
 	Repeat   int
+	Username string
 }
 
 type Message struct {
-	Type   string // "task", "stop", or "list"
-	Task   *Task
-	TaskID string
+	Type     string // "task", "stop", or "list"
+	Task     *Task
+	TaskID   string
+	Username string
 }
 
 var tasks = make(map[string]*Task)
@@ -77,18 +79,20 @@ func handleConnection(conn net.Conn, taskChan chan *Task, stopChan chan string) 
 		fmt.Println("Decoded task ID:", msg.TaskID)
 		stopChan <- msg.TaskID
 	case "list":
-		listTasks(conn)
+		listTasks(conn, msg.Username)
 	default:
 		fmt.Println("Unknown message type:", msg.Type)
 	}
 }
 
-func listTasks(conn net.Conn) {
+func listTasks(conn net.Conn, username string) {
 	mu.Lock()
 	defer mu.Unlock()
 	var taskList []string
-	for id := range tasks {
-		taskList = append(taskList, id)
+	for id, task := range tasks {
+		if username == "" || task.Username == username {
+			taskList = append(taskList, id)
+		}
 	}
 	encoder := gob.NewEncoder(conn)
 	err := encoder.Encode(taskList)
