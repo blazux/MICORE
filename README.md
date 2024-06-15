@@ -8,11 +8,13 @@ make it a service if you want/need to.
 
 ## Use the client :
 - add a repeated command *(set repeat_count to -1 for infinite)*:
-```micore add "<linux_command> [options]..." "<repeat_interval>" <repeat_count>```
+```micore add "<linux_command> [options]..." "<repeat_interval>" <repeat_count> <username>```
 
-
-- list commands being repeated :
+- list repeat task of everyone :
 ```micore list```
+
+- list repeat task of a given user :
+```micore list <username>```
 
 - stop a repeat task :
 ```micore stop <task_id>```
@@ -20,7 +22,7 @@ make it a service if you want/need to.
 
 ## Example :
 ```
-# micore add "LANG=C date && echo 'hello world !'" "10s" 3
+# micore add "LANG=C date && echo 'hello world !'" "10s" 3 myself
 
 # Output: Wed May 22 21:15:55 AST 2024
 hello world !
